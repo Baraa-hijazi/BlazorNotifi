@@ -1,0 +1,56 @@
+﻿@inject IJSRuntime JsRuntime
+@inject HttpClient Http
+@using BlazorNotifi.Shared
+
+@page "/notification"
+
+<PageTitle>Notification</PageTitle>
+
+<h3>Notification</h3>
+
+<button @onclick="SubscriptionAsync">Subscribe</button>
+<button @onclick="UnSubscriptionAsync">Un-Subscribe</button>
+<button @onclick="SendNotificationToAll">Send notification all</button>
+<div>@_status</div>
+
+
+@code {
+    private string _status = "";
+
+    async Task SubscriptionAsync()
+    {
+        _status = "...";
+
+        var subscription = await JsRuntime.InvokeAsync<NotificationSubscription>("blazorPushNotifications.requestSubscription");
+        if (subscription != null)
+        {
+            subscription.UserId = ""; //set user ID
+            var response = await Http.PostAsJsonAsync("Notification/subscribe", subscription);
+            var totalSubscribedDevice = await response.Content.ReadFromJsonAsync<int>();
+            _status = "subscription done. Total device: " + totalSubscribedDevice;
+        }
+        else
+        {
+            _status = "Already subscribed";
+        }
+    }
+
+    async Task UnSubscriptionAsync()
+    {
+        _status = "...";
+        var unSubscribeStatus = await JsRuntime.InvokeAsync<bool>("blazorPushNotifications.unSubscribe");
+        if (unSubscribeStatus)
+        {
+    //TODO: remove the subscription from server side also.
+            _status = "un-subscription done";
+        }
+    }
+
+    async Task SendNotificationToAll()
+    {
+        _status = "...";
+        var notificationSentTo = await Http.GetFromJsonAsync<int>("Notification/sendall");
+        _status = "notification sent to " + notificationSentTo + " devices";
+    }
+
+}
